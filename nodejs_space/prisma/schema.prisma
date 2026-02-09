@@ -1,0 +1,22 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model story {
+  id            String   @id @default(uuid())
+  title         String
+  story         String   @db.Text
+  selecteditems String[]
+  theme         String
+  subtheme      String?
+  length        String
+  childname     String?
+  isfavorite    Boolean  @default(false)
+  createdat     DateTime @default(now())
+  updatedat     DateTime @updatedAt
+}

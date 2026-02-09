@@ -1,0 +1,26 @@
+{
+  "name": "BestieQuest - Magical Bedtime Stories",
+  "short_name": "BestieQuest",
+  "description": "Create magical, personalized bedtime stories for your children with 50+ characters, fun themes, and wholesome lessons.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#9b59b6",
+  "theme_color": "#9b59b6",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

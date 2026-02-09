@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "BestieQuest",
+    "slug": "abacusai-mobile-apps",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#9b59b6"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.abacusai.app.t1769545676",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#9b59b6"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.abacusai.app.t1769545676",
+      "versionCode": 1
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "name": "BestieQuest - Magical Bedtime Stories",
+      "shortName": "BestieQuest",
+      "description": "Create magical, personalized bedtime stories for your children with 50+ characters, fun themes, and wholesome lessons.",
+      "themeColor": "#9b59b6",
+      "backgroundColor": "#9b59b6",
+      "startUrl": "/",
+      "display": "standalone",
+      "orientation": "portrait",
+      "scope": "/",
+      "lang": "en",
+      "dir": "ltr"
+    },
+    "plugins": [],
+    "scheme": "bedtimestory",
+    "extra": {
+      "eas": {
+        "projectId": "a52132e3-7b24-4c1b-9315-46625e580b8a"
+      }
+    },
+    "owner": "abacus.ai"
+  }
+}
