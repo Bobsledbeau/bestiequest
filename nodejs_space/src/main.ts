@@ -140,12 +140,11 @@ async function bootstrap() {
     },
   });
 
-  const port = process.env.PORT ?? 3000;
-  await app.listen(port);
-  
-  console.log(`\n🚀 BestieQuest API is running on port ${port}`);
-  console.log(`📚 API Documentation: http://localhost:${port}/api-docs`);
-  console.log(`❤️  Health Check: http://localhost:${port}/health\n`);
+const port = process.env.PORT || 3000;
+await app.listen(port);
+console.log(`🚀 BestieQuest API is running on port ${port}`);
+console.log(`📚 API Documentation: http://localhost:${port}/api-docs`);
+console.log(`❤️ Health Check: http://localhost:${port}/health`);
 }
 
 bootstrap();
