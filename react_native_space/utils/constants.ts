@@ -1,27 +1,10 @@
 // App constants
-
-// API Base URL: Use same origin when hosted together (web), or explicit URL for mobile
 const getApiBaseUrl = () => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL;
-  
-  // If explicitly set, use it
-  if (envUrl) {
-    return envUrl;
-  }
-  
-  // For web platform, use same origin (frontend and backend hosted together)
+  // For production on Render / custom domain → use relative URL
   if (typeof window !== 'undefined' && window.location) {
-    const origin = window.location.origin;
-    
-    // Force HTTPS in production (any non-localhost domain)
-    if (!origin.includes('localhost') && origin.startsWith('http://')) {
-      return origin.replace('http://', 'https://') + '/';
-    }
-    
-    return origin + '/';
+    return '/';                    // ← This is the important change
   }
-  
-  // Fallback for development
+  // Fallback for local development
   return 'http://localhost:3000/';
 };
 
