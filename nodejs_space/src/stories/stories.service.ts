@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, InternalServerErrorException, NotFoundException, Logger } from '@nestjs/common';
+﻿import { Injectable, BadRequestException, InternalServerErrorException, NotFoundException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
 import { ItemsService } from '../items/items.service';
@@ -71,42 +71,37 @@ export class StoriesService {
     this.logger.log(`Story generated successfully with ID: ${savedStory.id}`);
 
     return this.formatStoryResponse(savedStory);
+}
+private async generateStoryWithLLM(
+  items: string[],
+  themeName: string,
+  subThemeName: string | undefined,
+  length: string,
+  childName?: string,
+  childGender?: 'boy' | 'girl',
+): Promise<{ title: string; story: string }> {
+  const wordCount = this.getWordCount(length);
+  let protagonist: string;
+
+  if (childName && childGender) {
+    protagonist = `${childName}, a ${childGender}`;
+  } else if (childName) {
+    protagonist = childName;
+  } else if (childGender) {
+    protagonist = `a curious ${childGender}`;
+  } else {
+    protagonist = 'a curious child';
   }
 
-  private async generateStoryWithLLM(
-    items: string[],
-    themeName: string,
-    subThemeName: string | undefined,
-    length: string,
-    childName?: string,
-    childGender?: 'boy' | 'girl',
-  ): Promise<{ title: string; story: string }> {
-    const wordCount = this.getWordCount(length);
-    let protagonist: string;
-    
-    if (childName && childGender) {
-      protagonist = `${childName}, a ${childGender}`;
-    } else if (childName) {
-      protagonist = childName;
-    } else if (childGender) {
-      protagonist = `a curious ${childGender}`;
-    } else {
-      protagonist = 'a curious child';
-    }
-    
-    const themeGuidance = this.getThemeGuidance(themeName, subThemeName);
-
-    const prompt = `You are a wholesome storyteller creating bedtime stories for young children (ages 3-10). Always generate safe, positive, and engaging stories with happy endings. Use simple, fun language that's easy to read aloud.
-
+  const themeGuidance = this.getThemeGuidance(themeName, subThemeName);
+  const prompt = `You are a wholesome storyteller creating bedtime stories for young children (ages 3-10). Always generate safe, positive, and engaging stories with happy endings. Use simple, fun language that's easy to read aloud.
 **Story Inputs**:
 - **Protagonist**: ${protagonist}
 - **Characters/Items to Include**: ${items.join(', ')}
 - **Theme**: ${themeName}${subThemeName ? ` - ${subThemeName}` : ''}
 - **Target Length**: ${wordCount} words (aim for approximately ${wordCount} words with short sentences and vivid descriptions)
-
 **Theme-Specific Guidance**:
 ${themeGuidance}
-
 **Strict Safeguards - Follow these rules exactly, no exceptions**:
 1. Stories must be completely appropriate for kids: No violence, scary elements, monsters that aren't friendly, death, injury, bad language, romance, sexual content, or anything frightening/upsetting.
 2. Avoid any modern political, social justice, or "woke" themes, including discussions of gender identity, fluidity, diversity mandates, environmental activism, or inequality. Stick to timeless, neutral narratives focused on fun, magic, learning, or classic life lessons.
@@ -115,13 +110,11 @@ ${themeGuidance}
 5. End every story on an uplifting note, reinforcing positivity.
 6. Incorporate ALL listed characters/items naturally into the story.
 7. Make ${protagonist} the hero/main character of the story.
-
 **Story Format**:
 - Start with "Once upon a time..."
 - End with "The end."
 - Use 3-4 short paragraphs with vivid descriptions to spark imagination
 - Keep sentences short and easy to read aloud
-
 **Output Format**:
 Provide your response in JSON format with exactly this structure:
 {
@@ -129,93 +122,65 @@ Provide your response in JSON format with exactly this structure:
   "story": "The complete story text starting with 'Once upon a time...' and ending with 'The end.' Use \\n\\n between paragraphs."
 }`;
 
-    try {
-      const apiKey = this.configService.get<string>('ABACUSAI_API_KEY');
-      if (!apiKey) {
-        throw new Error('ABACUSAI_API_KEY is not configured');
-      }
-
-      const response = await fetch('https://apps.abacus.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'grok-4-1-fast-non-reasoning',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a wholesome storyteller for young children (ages 3-10). Create safe, positive stories with traditional values and happy endings. Always respond with valid JSON only, following the exact format specified.',
-            },
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.8,
-          max_tokens: 3000,
-        }),
-        signal: AbortSignal.timeout(30000), // 30 second timeout
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        this.logger.error(`LLM API error: ${response.status} - ${errorText}`);
-        
-        if (response.status === 429) {
-          throw new InternalServerErrorException('Rate limit exceeded. Please try again in a moment.');
-        }
-        if (response.status === 401) {
-          throw new InternalServerErrorException('API authentication failed. Please contact support.');
-        }
-        throw new Error(`LLM API returned status ${response.status}`);
-      }
-
-      const data = await response.json();
-      const responseText = data.choices?.[0]?.message?.content?.trim();
-      
-      if (!responseText) {
-        throw new Error('Empty response from LLM');
-      }
-
-      this.logger.log('Received response from LLM');
-
-      // Parse JSON response
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch (parseError) {
-        this.logger.error('Failed to parse LLM response as JSON', parseError);
-        throw new Error('Invalid JSON response from LLM');
-      }
-
-      // Validate response structure
-      if (!result.title || !result.story) {
-        this.logger.error('Invalid story structure from LLM', result);
-        throw new Error('Invalid story structure from LLM');
-      }
-
-      // Content safety check (basic filtering)
-      const unsafeWords = ['scary', 'frightening', 'terrifying', 'horror', 'nightmare', 'afraid', 'fear'];
-      const storyLower = result.story.toLowerCase();
-      const hasUnsafeContent = unsafeWords.some(word => storyLower.includes(word));
-      
-      if (hasUnsafeContent) {
-        this.logger.warn('Potentially unsafe content detected in story');
-        // Still return the story but log the warning
-      }
-
-      return result;
-    } catch (error: any) {
-      this.logger.error('Error generating story with LLM', error);
-      
-      // Return fallback story instead of throwing error
-      this.logger.warn('Using fallback story due to LLM error');
-      return this.getFallbackStory(items, themeName, subThemeName, protagonist);
+  try {
+    const apiKey = this.configService.get<string>('XAI_API_KEY');
+    if (!apiKey) {
+      throw new Error('XAI_API_KEY is not configured');
     }
+
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'grok-beta',  // Fast, high-quality Grok model
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a wholesome storyteller for young children (ages 3-10). Create safe, positive stories with traditional values and happy endings. Always respond with valid JSON only, following the exact format specified.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.8,
+        max_tokens: 3000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      this.logger.error(`Grok API error: ${response.status} - ${errorText}`);
+      throw new Error(`Grok API returned status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const responseText = data.choices?.[0]?.message?.content?.trim();
+
+    if (!responseText) {
+      throw new Error('Empty response from Grok');
+    }
+
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      this.logger.error('Failed to parse Grok response as JSON', parseError);
+      throw new Error('Invalid JSON response from Grok');
+    }
+
+    if (!result.title || !result.story) {
+      this.logger.error('Invalid story structure from Grok', result);
+      throw new Error('Invalid story structure from Grok');
+    }
+
+    return result;
+  } catch (error: any) {
+    this.logger.error('Error generating story with Grok', error);
+    this.logger.warn('Using fallback story due to Grok error');
+    return this.getFallbackStory(items, themeName, subThemeName, protagonist);
   }
+}
 
   private getWordCount(length: string): number {
     switch (length) {
