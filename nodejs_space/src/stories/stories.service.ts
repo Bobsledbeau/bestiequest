@@ -135,7 +135,7 @@ Provide your response in JSON format with exactly this structure:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'grok-beta',  // Fast, high-quality Grok model
+        model: 'grok-4-1-fast-non-reasoning',  // Fast, high-quality Grok model
         messages: [
           {
             role: 'system',
