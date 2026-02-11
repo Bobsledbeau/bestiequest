@@ -97,22 +97,23 @@ private async generateStoryWithLLM(
 
 const prompt = `You are a professional children's bedtime storyteller.
 
-**STORY REQUIREMENTS**:
-- Write **EXACTLY** around ${wordCount} words. Count the words carefully. Do not write significantly more or less.
-- Start with "Once upon a time..."
-- End with "The end."
-- Use simple, fun, read-aloud language.
+**STRICT WORD COUNT RULE**:
+- You MUST write EXACTLY around ${wordCount} words.
+- Long = 1900–2100 words
+- Medium = 1150–1250 words
+- Short = 750–850 words
+- Count your words before finishing. If the story is too short, continue writing until you reach the target length.
 
-**TITLE RULE (Very Important - Follow Strictly)**:
-Create a **cute, funny, magical, or endearing original title** that makes a child excited to read the story.
-→ Do NOT repeat the inputs literally.
-→ Bad examples: "Beau's Life Lessons Adventure", "Bob, a boy's Funny Adventure", "Johnny's Life Lessons About Friendship"
-→ Good examples: "The Brave Bunny Who Saved the Moon", "The Unicorn's Secret Midnight Party", "Johnny and the Whispering Forest"
+**TITLE RULE (Very Important)**:
+Create a cute, funny, magical or endearing **original title** that makes a child excited to read it.
+→ Never repeat the inputs literally.
+→ Bad examples: "Batman, a boy's Life Lessons Adventure", "Beau's Funny Adventure"
+→ Good examples: "The Brave Bunny Who Saved the Moon", "The Unicorn's Midnight Cookie Party"
 
 **Story Inputs**:
-- **Protagonist**: ${protagonist}
-- **Characters/Items**: ${items.join(', ')}
-- **Theme**: ${themeName}${subThemeName ? ` - ${subThemeName}` : ''}
+- Protagonist: ${protagonist}
+- Characters/Items: ${items.join(', ')}
+- Theme: ${themeName}${subThemeName ? ` - ${subThemeName}` : ''}
 
 **Theme Guidance**:
 ${themeGuidance}
@@ -122,7 +123,6 @@ ${themeGuidance}
   "title": "A cute, funny, or magical original title",
   "story": "The full story text..."
 }`;
-
 
   try {
     const apiKey = this.configService.get<string>('XAI_API_KEY');
