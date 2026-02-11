@@ -69,34 +69,33 @@ export class StoriesService {
     });
 
     this.logger.log(`Story generated successfully with ID: ${savedStory.id}`);
-
-return this.formatStoryResponse(savedStory);
-}   // ← Add this line
-
-private async generateStoryWithLLM(
-  items: string[],
-  themeName: string,
-  subThemeName: string | undefined,
-  length: string,
-  childName?: string,
-  childGender?: 'boy' | 'girl',
-): Promise<{ title: string; story: string }> {
-  const wordCount = this.getWordCount(length);
-  let protagonist: string;
-
-  if (childName && childGender) {
-    protagonist = `${childName}, a ${childGender}`;
-  } else if (childName) {
-    protagonist = childName;
-  } else if (childGender) {
-    protagonist = `a curious ${childGender}`;
-  } else {
-    protagonist = 'a curious child';
+    return this.formatStoryResponse(savedStory);
   }
 
-  const themeGuidance = this.getThemeGuidance(themeName, subThemeName);
+  private async generateStoryWithLLM(
+    items: string[],
+    themeName: string,
+    subThemeName: string | undefined,
+    length: string,
+    childName?: string,
+    childGender?: 'boy' | 'girl',
+  ): Promise<{ title: string; story: string }> {
+    const wordCount = this.getWordCount(length);
+    let protagonist: string;
 
-const prompt = `**YOU ARE A CHILDREN'S BEDTIME STORYTELLER - FOLLOW THESE RULES EXACTLY**
+    if (childName && childGender) {
+      protagonist = `${childName}, a ${childGender}`;
+    } else if (childName) {
+      protagonist = childName;
+    } else if (childGender) {
+      protagonist = `a curious ${childGender}`;
+    } else {
+      protagonist = 'a curious child';
+    }
+
+    const themeGuidance = this.getThemeGuidance(themeName, subThemeName);
+
+    const prompt = `**YOU ARE A CHILDREN'S BEDTIME STORYTELLER - FOLLOW THESE RULES EXACTLY**
 
 **WORD COUNT - THIS IS MANDATORY**:
 You MUST write a story that is EXACTLY around ${wordCount} words long.
@@ -134,25 +133,31 @@ ${themeGuidance}
   "story": "Full story text..."
 }`;
 
-const response = await fetch('https://api.x.ai/v1/chat/completions', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${apiKey}`,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    model: 'grok-beta',
-    messages: [
-      {
-        role: 'system',
-        content: 'You are a wholesome storyteller for young children. Create safe, positive stories with happy endings. Always respond with valid JSON only.',
+    const apiKey = this.configService.get<string>('XAI_API_KEY');
+    if (!apiKey) {
+      throw new Error('XAI_API_KEY is not configured');
+    }
+
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
       },
-      { role: 'user', content: prompt },
-    ],
-    temperature: 0.8,
-    max_tokens: 8192,  // Increased for long stories
-  }),
-});
+      body: JSON.stringify({
+        model: 'grok-beta',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a wholesome storyteller for young children. Create safe, positive stories with happy endings. Always respond with valid JSON only.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.8,
+        max_tokens: 8192,
+      }),
+    });
+
     if (!response.ok) {
       const errorText = await response.text();
       this.logger.error(`Grok API error: ${response.status} - ${errorText}`);
