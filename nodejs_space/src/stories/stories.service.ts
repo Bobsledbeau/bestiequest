@@ -95,40 +95,34 @@ private async generateStoryWithLLM(
 
   const themeGuidance = this.getThemeGuidance(themeName, subThemeName);
 
- const prompt = `You are a wholesome storyteller creating bedtime stories for young children (ages 3-10). Always generate safe, positive, and engaging stories with happy endings. Use simple, fun language that's easy to read aloud.
+const prompt = `You are a professional children's bedtime storyteller.
+
+**STORY REQUIREMENTS**:
+- Write **EXACTLY** around ${wordCount} words. Count the words carefully. Do not write significantly more or less.
+- Start with "Once upon a time..."
+- End with "The end."
+- Use simple, fun, read-aloud language.
+
+**TITLE RULE (Very Important - Follow Strictly)**:
+Create a **cute, funny, magical, or endearing original title** that makes a child excited to read the story.
+→ Do NOT repeat the inputs literally.
+→ Bad examples: "Beau's Life Lessons Adventure", "Bob, a boy's Funny Adventure", "Johnny's Life Lessons About Friendship"
+→ Good examples: "The Brave Bunny Who Saved the Moon", "The Unicorn's Secret Midnight Party", "Johnny and the Whispering Forest"
 
 **Story Inputs**:
 - **Protagonist**: ${protagonist}
-- **Characters/Items to Include**: ${items.join(', ')}
+- **Characters/Items**: ${items.join(', ')}
 - **Theme**: ${themeName}${subThemeName ? ` - ${subThemeName}` : ''}
-- **Target Length**: EXACTLY around ${wordCount} words. Count your words carefully. Do NOT write significantly more or less than ${wordCount} words.
 
-**Theme-Specific Guidance**:
+**Theme Guidance**:
 ${themeGuidance}
 
-**Strict Safeguards - Follow these rules exactly**:
-1. Stories must be completely appropriate for kids: No violence, scary elements, monsters that aren't friendly, death, injury, bad language, romance, sexual content, or anything frightening.
-2. Avoid any modern political, social justice, or "woke" themes. Stick to timeless, neutral narratives focused on fun, magic, learning, or classic life lessons.
-3. Use traditional binary pronouns (he/she) based on classic archetypes.
-4. End every story on an uplifting note.
-5. Incorporate ALL listed characters/items naturally.
-6. Make ${protagonist} the hero/main character.
-
-**Story Format**:
-- Start with "Once upon a time..."
-- End with "The end."
-- Use 3-4 short paragraphs with vivid descriptions
-- Keep sentences short and easy to read aloud
-
-**Title Instructions**:
-Create a **cute, funny, endearing, or magical original title** that makes a child excited to read the story. Do NOT repeat the inputs literally (no "Bob's Funny Adventure" or "Johnny's Life Lessons"). Make it creative and appealing.
-
-**Output Format**:
-Provide your response in JSON format with exactly this structure:
+**Output Format** (JSON only):
 {
   "title": "A cute, funny, or magical original title",
-  "story": "The complete story text starting with 'Once upon a time...' and ending with 'The end.' Use \\n\\n between paragraphs."
+  "story": "The full story text..."
 }`;
+
 
   try {
     const apiKey = this.configService.get<string>('XAI_API_KEY');
