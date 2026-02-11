@@ -95,20 +95,22 @@ private async generateStoryWithLLM(
 
   const themeGuidance = this.getThemeGuidance(themeName, subThemeName);
 
-const prompt = `You are a professional children's bedtime storyteller.
+const prompt = `**YOU ARE A CHILDREN'S BEDTIME STORYTELLER - FOLLOW THESE RULES EXACTLY**
 
-**STRICT WORD COUNT RULE**:
-- You MUST write EXACTLY around ${wordCount} words.
-- Long = 1900–2100 words
-- Medium = 1150–1250 words
-- Short = 750–850 words
-- Count your words before finishing. If the story is too short, continue writing until you reach the target length.
+**WORD COUNT - THIS IS MANDATORY**:
+You MUST write a story that is EXACTLY ${wordCount} words long.
+- Long story: 1900–2100 words
+- Medium story: 1150–1250 words
+- Short story: 750–850 words
+Count your words. If the story is too short, KEEP WRITING more events, descriptions, and dialogue until you reach the target.
+DO NOT summarize or end early.
 
-**TITLE RULE (Very Important)**:
-Create a cute, funny, magical or endearing **original title** that makes a child excited to read it.
-→ Never repeat the inputs literally.
-→ Bad examples: "Batman, a boy's Life Lessons Adventure", "Beau's Funny Adventure"
-→ Good examples: "The Brave Bunny Who Saved the Moon", "The Unicorn's Midnight Cookie Party"
+**TITLE - THIS IS MANDATORY**:
+Create a **cute, funny, magical, or endearing ORIGINAL title** that makes a child excited to read.
+- NEVER use the child's name, gender, theme, or length in the title.
+- NEVER use words like "adventure", "journey", "lesson"
+- Bad examples: "Batman, a boy's Life Lessons Adventure", "Beau's Funny Adventure", "a curious child's Magical Adventure"
+- Good examples: "The Brave Bunny Who Saved the Moon", "The Unicorn's Secret Midnight Party", "The Penguin Who Learned to Fly"
 
 **Story Inputs**:
 - Protagonist: ${protagonist}
@@ -118,38 +120,38 @@ Create a cute, funny, magical or endearing **original title** that makes a child
 **Theme Guidance**:
 ${themeGuidance}
 
-**Output Format** (JSON only):
+**Story Rules**:
+- Start with "Once upon a time..."
+- End with "The end."
+- Use simple, fun language for read-aloud
+- Incorporate ALL characters/items naturally
+- Make ${protagonist} the hero
+
+**Output** (JSON only):
 {
-  "title": "A cute, funny, or magical original title",
-  "story": "The full story text..."
+  "title": "Cute, funny, or magical original title",
+  "story": "Full story text..."
 }`;
 
-  try {
-    const apiKey = this.configService.get<string>('XAI_API_KEY');
-    if (!apiKey) {
-      throw new Error('XAI_API_KEY is not configured');
-    }
-
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+const response = await fetch('https://api.x.ai/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'grok-beta',
+    messages: [
+      {
+        role: 'system',
+        content: 'You are a wholesome storyteller for young children. Create safe, positive stories with happy endings. Always respond with valid JSON only.',
       },
-      body: JSON.stringify({
-        model: 'grok-beta',  // Fast, high-quality Grok model
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a wholesome storyteller for young children (ages 3-10). Create safe, positive stories with traditional values and happy endings. Always respond with valid JSON only, following the exact format specified.',
-          },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.8,
-        max_tokens: 3000,
-      }),
-    });
-
+      { role: 'user', content: prompt },
+    ],
+    temperature: 0.8,
+    max_tokens: 8192,  // Increased for long stories
+  }),
+});
     if (!response.ok) {
       const errorText = await response.text();
       this.logger.error(`Grok API error: ${response.status} - ${errorText}`);
