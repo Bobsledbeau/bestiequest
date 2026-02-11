@@ -81,7 +81,7 @@ private async generateStoryWithLLM(
   childGender?: 'boy' | 'girl',
 ): Promise<{ title: string; story: string }> {
   const wordCount = this.getWordCount(length);
-  让 protagonist: string;
+let protagonist: string;
 
   if (childName && childGender) {
     protagonist = `${childName}, a ${childGender}`;
