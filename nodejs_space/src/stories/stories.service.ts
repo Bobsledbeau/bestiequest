@@ -98,7 +98,7 @@ private async generateStoryWithLLM(
 const prompt = `**YOU ARE A CHILDREN'S BEDTIME STORYTELLER - FOLLOW THESE RULES EXACTLY**
 
 **WORD COUNT - THIS IS MANDATORY**:
-You MUST write a story that is EXACTLY ${wordCount} words long.
+You MUST write a story that is EXACTLY around ${wordCount} words long.
 - Long story: 1900–2100 words
 - Medium story: 1150–1250 words
 - Short story: 750–850 words
