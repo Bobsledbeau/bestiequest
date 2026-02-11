@@ -70,7 +70,7 @@ export class StoriesService {
 
     this.logger.log(`Story generated successfully with ID: ${savedStory.id}`);
 
-    return this.formatStoryResponse(savedStory);
+return this.formatStoryResponse(savedStory);
 }
 private async generateStoryWithLLM(
   items: string[],
