@@ -71,7 +71,8 @@ export class StoriesService {
     this.logger.log(`Story generated successfully with ID: ${savedStory.id}`);
 
 return this.formatStoryResponse(savedStory);
-}
+}   // ← Add this line
+
 private async generateStoryWithLLM(
   items: string[],
   themeName: string,
