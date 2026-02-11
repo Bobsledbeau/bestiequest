@@ -72,30 +72,30 @@ export class StoriesService {
     return this.formatStoryResponse(savedStory);
   }
 
-  private async generateStoryWithLLM(
-    items: string[],
-    themeName: string,
-    subThemeName: string | undefined,
-    length: string,
-    childName?: string,
-    childGender?: 'boy' | 'girl',
-  ): Promise<{ title: string; story: string }> {
-    const wordCount = this.getWordCount(length);
-    let protagonist: string;
+private async generateStoryWithLLM(
+  items: string[],
+  themeName: string,
+  subThemeName: string | undefined,
+  length: string,
+  childName?: string,
+  childGender?: 'boy' | 'girl',
+): Promise<{ title: string; story: string }> {
+  const wordCount = this.getWordCount(length);
+  让 protagonist: string;
 
-    if (childName && childGender) {
-      protagonist = `${childName}, a ${childGender}`;
-    } else if (childName) {
-      protagonist = childName;
-    } else if (childGender) {
-      protagonist = `a curious ${childGender}`;
-    } else {
-      protagonist = 'a curious child';
-    }
+  if (childName && childGender) {
+    protagonist = `${childName}, a ${childGender}`;
+  } else if (childName) {
+    protagonist = childName;
+  } else if (childGender) {
+    protagonist = `a curious ${childGender}`;
+  } else {
+    protagonist = 'a curious child';
+  }
 
-    const themeGuidance = this.getThemeGuidance(themeName, subThemeName);
+  const themeGuidance = this.getThemeGuidance(themeName, subThemeName);
 
-    const prompt = `**YOU ARE A CHILDREN'S BEDTIME STORYTELLER - FOLLOW THESE RULES EXACTLY**
+  const prompt = `**YOU ARE A CHILDREN'S BEDTIME STORYTELLER - FOLLOW THESE RULES EXACTLY**
 
 **WORD COUNT - THIS IS MANDATORY**:
 You MUST write a story that is EXACTLY around ${wordCount} words long.
@@ -133,63 +133,62 @@ ${themeGuidance}
   "story": "Full story text..."
 }`;
 
-    const apiKey = this.configService.get<string>('XAI_API_KEY');
-    if (!apiKey) {
-      throw new Error('XAI_API_KEY is not configured');
-    }
-
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'grok-beta',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a wholesome storyteller for young children. Create safe, positive stories with happy endings. Always respond with valid JSON only.',
-          },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.8,
-        max_tokens: 8192,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      this.logger.error(`Grok API error: ${response.status} - ${errorText}`);
-      throw new Error(`Grok API returned status ${response.status}`);
-    }
-
-    const data = await response.json();
-    const responseText = data.choices?.[0]?.message?.content?.trim();
-
-    if (!responseText) {
-      throw new Error('Empty response from Grok');
-    }
-
-    let result;
-    try {
-      result = JSON.parse(responseText);
-    } catch (parseError) {
-      this.logger.error('Failed to parse Grok response as JSON', parseError);
-      throw new Error('Invalid JSON response from Grok');
-    }
-
-    if (!result.title || !result.story) {
-      this.logger.error('Invalid story structure from Grok', result);
-      throw new Error('Invalid story structure from Grok');
-    }
-
-    return result;
-  } catch (error: any) {
-    this.logger.error('Error generating story with Grok', error);
-    this.logger.warn('Using fallback story due to Grok error');
-    return this.getFallbackStory(items, themeName, subThemeName, protagonist);
+  const apiKey = this.configService.get<string>('XAI_API_KEY');
+  if (!apiKey) {
+    throw new Error('XAI_API_KEY is not configured');
   }
+
+  const response = await fetch('https://api.x.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'grok-4-1-fast-non-reasoning',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a wholesome storyteller for young children. Create safe, positive stories with happy endings. Always respond with valid JSON only.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.8,
+      max_tokens: 8192,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    this.logger.error(`Grok API error: ${response.status} - ${errorText}`);
+    throw new Error(`Grok API returned status ${response.status}`);
+  }
+
+  const data = await response.json();
+  const responseText = data.choices?.[0]?.message?.content?.trim();
+
+  if (!responseText) {
+    throw new Error('Empty response from Grok');
+  }
+
+  let result;
+  try {
+    result = JSON.parse(responseText);
+  } catch (parseError) {
+    this.logger.error('Failed to parse Grok response as JSON', parseError);
+    throw new Error('Invalid JSON response from Grok');
+  }
+
+  if (!result.title || !result.story) {
+    this.logger.error('Invalid story structure from Grok', result);
+    throw new Error('Invalid story structure from Grok');
+  }
+
+  return result;
+} catch (error: any) {
+  this.logger.error('Error generating story with Grok', error);
+  this.logger.warn('Using fallback story due to Grok error');
+  return this.getFallbackStory(items, themeName, subThemeName, protagonist);
 }
 
   private getWordCount(length: string): number {
