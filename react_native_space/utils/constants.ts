@@ -2,7 +2,7 @@
 const getApiBaseUrl = () => {
   // For production on Render / custom domain → use relative URL
   if (typeof window !== 'undefined' && window.location) {
-    return '/';                    // ← This is the important change
+    return '/';
   }
   // Fallback for local development
   return 'http://localhost:3000/';
@@ -61,3 +61,4 @@ export const STORY_LENGTH_DESCRIPTIONS = {
 
 export const MIN_ITEMS_SELECTION = 1;
 export const MAX_ITEMS_SELECTION = 10;
+}

@@ -24,6 +24,10 @@ export default function RootLayout() {
                 contentStyle: {
                   backgroundColor: COLORS.background,
                 },
+                headerBackImage: () => (
+                  <MaterialCommunityIcons name="arrow-left" size={28} color="#fff" style={{ marginLeft: 8 }} />
+                ),
+                headerBackTitleVisible: false,
               }}
             >
               <Stack.Screen

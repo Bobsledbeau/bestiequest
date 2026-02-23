@@ -36,7 +36,7 @@ sed -i 's/"eas-build-pre-install": "corepack enable && yarn set version 4.12.0 &
 sed -i 's/contentStyle: {/headerBackImage: () => (<MaterialCommunityIcons name="arrow-left" size={28} color="#fff" style={{ marginLeft: 8 }} />),\n                headerBackTitleVisible: false,\n                contentStyle: {/' app/_layout.tsx
 
 # Step 6: Ensure constants.ts has correct API_BASE_URL for production
-sed -i 's/return "http://localhost:3000/";/return "http://localhost:3000/";  # Use relative for production, but change if backend is separate/' utils/constants.ts
+sed -i 's/return "http://localhost:3000/";/return "/";/' utils/constants.ts
 
 # Step 7: Fix any .ts to .tsx if JSX is present (e.g., index.ts)
 mv index.ts index.tsx
