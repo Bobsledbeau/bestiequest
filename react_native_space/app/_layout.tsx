@@ -22,7 +22,11 @@ export default function RootLayout() {
                 headerTitleStyle: {
                   fontWeight: 'bold',
                 },
-                contentStyle: {
+                headerBackImage: () => (
+  <MaterialCommunityIcons name="arrow-left" size={28} color="#fff" style={{ marginLeft: 8 }} />
+),
+headerBackTitleVisible: false,
+contentStyle: {
                   backgroundColor: COLORS.background,
                 },
                 headerBackImage: () => (
