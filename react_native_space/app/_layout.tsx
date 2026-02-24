@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StoryProvider } from '../context/StoryContext';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { COLORS } from '../utils/constants';
+import { MaterialCommunityIcons } from @expo/vector-icons;
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function RootLayout() {
