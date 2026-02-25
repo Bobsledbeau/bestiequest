@@ -1,7 +1,6 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Sparkles } from 'lucide-react-native';
-
 export default function Home() {
   return (
     <View className="flex-1 bg-[#f8f4ff] items-center justify-center p-6">

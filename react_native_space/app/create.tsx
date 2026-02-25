@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { router } from 'expo-router';
-import { Check, X } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_URL = 'https://YOUR-BACKEND.onrender.com'; // ← CHANGE THIS AFTER RENDER DEPLOY
 
 const characters = ['Fluffy Bunny', 'Brave Lion', 'Magic Owl', 'Sparkle Unicorn', 'Dancing Fox', 'Cozy Bear', 'Rainbow Parrot', 'Gentle Elephant'];
 const items = ['Magic Lantern', 'Enchanted Map', 'Star Wand', 'Friendship Bracelet', 'Storybook', 'Treasure Chest', 'Moon Cake', 'Wish Feather'];
@@ -28,29 +29,19 @@ export default function Create() {
     if (selectedChars.includes(item)) setSelectedChars(selectedChars.filter(i => i !== item));
     else if (selectedChars.length < 10) setSelectedChars([...selectedChars, item]);
   };
-
   const toggleItem = (item: string) => {
     if (selectedItems.includes(item)) setSelectedItems(selectedItems.filter(i => i !== item));
     else if (selectedItems.length < 10) setSelectedItems([...selectedItems, item]);
   };
 
   const generate = async () => {
-    if (selectedChars.length + selectedItems.length === 0) {
-      Alert.alert('Please pick at least one character or item');
-      return;
-    }
-    if (!themeName) {
-      Alert.alert('Please pick a theme');
-      return;
-    }
-    if (!childGender) {
-      Alert.alert('Please choose boy or girl');
-      return;
-    }
+    if (selectedChars.length + selectedItems.length === 0) return Alert.alert('Please pick at least one character or item');
+    if (!themeName) return Alert.alert('Please pick a theme');
+    if (!childGender) return Alert.alert('Please choose boy or girl');
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:3001/generate-story', {  // Change to your Render backend URL later
+      const res = await fetch(`${API_URL}/generate-story`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -66,18 +57,12 @@ export default function Create() {
 
       const storyId = Date.now().toString();
       await AsyncStorage.setItem(`story_${storyId}`, JSON.stringify({
-        id: storyId,
-        title: data.title,
-        story: data.story,
-        date: new Date().toISOString(),
-        length,
-        childName: childName || 'Bestie',
-        theme: themeName
+        id: storyId, title: data.title, story: data.story,
+        date: new Date().toISOString(), length, childName: childName || 'Bestie', theme: themeName
       }));
-
       router.push({ pathname: '/library', params: { newStoryId: storyId } });
     } catch (e) {
-      Alert.alert('Backend not running? Start nodejs_space first!');
+      Alert.alert('Error — is backend running? Start nodejs_space first!');
     }
     setLoading(false);
   };
@@ -88,16 +73,11 @@ export default function Create() {
 
       {step === 1 && (
         <>
-          <Text className="text-2xl font-semibold mb-4">1. Choose Characters & Items</Text>
-          <Text className="mb-4 text-gray-600">Max 10 total</Text>
-          {/* Grid for characters & items - simplified but tappable */}
+          <Text className="text-2xl font-semibold mb-4">1. Choose Characters & Items (max 10)</Text>
           <View className="flex-row flex-wrap gap-3">
             {[...characters, ...items].map(item => (
-              <TouchableOpacity
-                key={item}
-                onPress={() => (characters.includes(item) ? toggleChar : toggleItem)(item)}
-                className={`px-6 py-4 rounded-3xl border-2 ${[...selectedChars, ...selectedItems].includes(item) ? 'bg-purple border-purple' : 'bg-white border-gray-200'}`}
-              >
+              <TouchableOpacity key={item} onPress={() => (characters.includes(item) ? toggleChar : toggleItem)(item)}
+                className={`px-6 py-4 rounded-3xl border-2 ${[...selectedChars, ...selectedItems].includes(item) ? 'bg-purple border-purple' : 'bg-white border-gray-200'}`}>
                 <Text className={[...selectedChars, ...selectedItems].includes(item) ? 'text-white' : 'text-gray-700'}>{item}</Text>
               </TouchableOpacity>
             ))}
@@ -119,15 +99,10 @@ export default function Create() {
         </>
       )}
 
-      {step === 3 && themeName && (
+      {step === 3 && (
         <>
           <Text className="text-2xl font-semibold mb-6">3. Personalisation</Text>
-          <TextInput
-            className="bg-white p-6 rounded-3xl text-2xl mb-6"
-            placeholder="Child's name (optional)"
-            value={childName}
-            onChangeText={setChildName}
-          />
+          <TextInput className="bg-white p-6 rounded-3xl text-2xl mb-6" placeholder="Child's name (optional)" value={childName} onChangeText={setChildName} />
           <View className="flex-row gap-4 mb-10">
             <TouchableOpacity onPress={() => setChildGender('boy')} className={`flex-1 py-6 rounded-3xl ${childGender === 'boy' ? 'bg-purple' : 'bg-white'}`}>
               <Text className={`text-center text-2xl ${childGender === 'boy' ? 'text-white' : 'text-gray-700'}`}>Boy 👦</Text>
