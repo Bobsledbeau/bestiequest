@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'reac
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'https://YOUR-BACKEND.onrender.com'; // ← CHANGE THIS AFTER RENDER DEPLOY
+const API_URL = 'http://localhost:3001';   // ← Local backend (change to Render URL later)
 
 const characters = ['Fluffy Bunny', 'Brave Lion', 'Magic Owl', 'Sparkle Unicorn', 'Dancing Fox', 'Cozy Bear', 'Rainbow Parrot', 'Gentle Elephant'];
 const items = ['Magic Lantern', 'Enchanted Map', 'Star Wand', 'Friendship Bracelet', 'Storybook', 'Treasure Chest', 'Moon Cake', 'Wish Feather'];
@@ -29,6 +29,7 @@ export default function Create() {
     if (selectedChars.includes(item)) setSelectedChars(selectedChars.filter(i => i !== item));
     else if (selectedChars.length < 10) setSelectedChars([...selectedChars, item]);
   };
+
   const toggleItem = (item: string) => {
     if (selectedItems.includes(item)) setSelectedItems(selectedItems.filter(i => i !== item));
     else if (selectedItems.length < 10) setSelectedItems([...selectedItems, item]);
@@ -62,7 +63,7 @@ export default function Create() {
       }));
       router.push({ pathname: '/library', params: { newStoryId: storyId } });
     } catch (e) {
-      Alert.alert('Error — is backend running? Start nodejs_space first!');
+      Alert.alert('Error — backend not responding? Check Terminal Tab 1');
     }
     setLoading(false);
   };
@@ -76,8 +77,11 @@ export default function Create() {
           <Text className="text-2xl font-semibold mb-4">1. Choose Characters & Items (max 10)</Text>
           <View className="flex-row flex-wrap gap-3">
             {[...characters, ...items].map(item => (
-              <TouchableOpacity key={item} onPress={() => (characters.includes(item) ? toggleChar : toggleItem)(item)}
-                className={`px-6 py-4 rounded-3xl border-2 ${[...selectedChars, ...selectedItems].includes(item) ? 'bg-purple border-purple' : 'bg-white border-gray-200'}`}>
+              <TouchableOpacity 
+                key={item} 
+                onPress={() => (characters.includes(item) ? toggleChar : toggleItem)(item)}
+                className={`px-6 py-4 rounded-3xl border-2 ${[...selectedChars, ...selectedItems].includes(item) ? 'bg-purple border-purple' : 'bg-white border-gray-200'}`}
+              >
                 <Text className={[...selectedChars, ...selectedItems].includes(item) ? 'text-white' : 'text-gray-700'}>{item}</Text>
               </TouchableOpacity>
             ))}
@@ -102,7 +106,12 @@ export default function Create() {
       {step === 3 && (
         <>
           <Text className="text-2xl font-semibold mb-6">3. Personalisation</Text>
-          <TextInput className="bg-white p-6 rounded-3xl text-2xl mb-6" placeholder="Child's name (optional)" value={childName} onChangeText={setChildName} />
+          <TextInput 
+            className="bg-white p-6 rounded-3xl text-2xl mb-6" 
+            placeholder="Child's name (optional)" 
+            value={childName} 
+            onChangeText={setChildName} 
+          />
           <View className="flex-row gap-4 mb-10">
             <TouchableOpacity onPress={() => setChildGender('boy')} className={`flex-1 py-6 rounded-3xl ${childGender === 'boy' ? 'bg-purple' : 'bg-white'}`}>
               <Text className={`text-center text-2xl ${childGender === 'boy' ? 'text-white' : 'text-gray-700'}`}>Boy 👦</Text>
