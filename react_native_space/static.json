@@ -1,0 +1,6 @@
+{
+  "root": "dist",
+  "routes": [
+    { "path": "/*", "serve": "index.html" }
+  ]
+}
