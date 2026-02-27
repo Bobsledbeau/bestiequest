@@ -11,7 +11,7 @@ export default function Layout() {
   const isNavigationReady = !!navigationState?.key;
 
   if (!isNavigationReady) {
-    return null;  // Wait for navigation state
+    return null; // Wait for navigation state to be ready
   }
 
   return (
