@@ -1,6 +1,7 @@
 {
   "name": "bestiequest-frontend",
   "version": "1.0.0",
+  "license": "MIT",
   "scripts": {
     "start": "expo start",
     "web": "expo start --web",
