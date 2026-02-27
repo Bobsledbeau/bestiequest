@@ -1,24 +1,19 @@
 import { Tabs } from 'expo-router';
+import { useRootNavigationState } from 'expo-router';
 import { Home, PlusCircle, Heart } from 'lucide-react-native';
 
 export const unstable_settings = {
   initialRouteName: 'index',
-  index: {
-    // Force initial route readiness
-    href: '/',
-  },
-  create: {
-    href: '/create',
-  },
-  library: {
-    href: '/library',
-  },
-  story: {
-    href: '/story/[id]',
-  },
 };
 
 export default function Layout() {
+  const navigationState = useRootNavigationState();
+  const isNavigationReady = !!navigationState?.key;
+
+  if (!isNavigationReady) {
+    return null;  // Wait for navigation state
+  }
+
   return (
     <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: '#D4A5FF', tabBarStyle: { backgroundColor: '#f8f4ff' } }}>
       <Tabs.Screen 
