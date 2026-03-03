@@ -75,7 +75,7 @@ export const handleApiError = (error: unknown): string => {
 // API endpoints
 export const fetchItems = async (): Promise<Item[]> => {
   try {
-    const response = await api.get<ItemsResponse>('/api/items');
+    const response = await api.get<ItemsResponse>('/items');
     return response.data.items;
   } catch (error) {
     throw new Error(handleApiError(error));
@@ -84,7 +84,7 @@ export const fetchItems = async (): Promise<Item[]> => {
 
 export const fetchThemes = async (): Promise<Theme[]> => {
   try {
-    const response = await api.get<ThemesResponse>('/api/themes');
+    const response = await api.get<ThemesResponse>('/themes');
     return response.data.themes;
   } catch (error) {
     throw new Error(handleApiError(error));
@@ -93,7 +93,7 @@ export const fetchThemes = async (): Promise<Theme[]> => {
 
 export const generateStory = async (data: GenerateStoryRequest): Promise<Story> => {
   try {
-    const response = await api.post<Story>('/api/stories/generate', data);
+    const response = await api.post<Story>('/stories/generate', data);
     return response.data;
   } catch (error) {
     throw new Error(handleApiError(error));
@@ -102,7 +102,7 @@ export const generateStory = async (data: GenerateStoryRequest): Promise<Story> 
 
 export const fetchStories = async (page: number = 1, limit: number = 20): Promise<StoriesResponse> => {
   try {
-    const response = await api.get<StoriesResponse>('/api/stories', {
+    const response = await api.get<StoriesResponse>('/stories', {
       params: { page, limit },
     });
     return response.data;
@@ -131,7 +131,7 @@ export const toggleFavorite = async (id: string): Promise<ToggleFavoriteResponse
 
 export const fetchFavorites = async (): Promise<Story[]> => {
   try {
-    const response = await api.get<FavoritesResponse>('/api/stories/favorites/list');
+    const response = await api.get<FavoritesResponse>('/stories/favorites/list');
     return response.data.stories;
   } catch (error) {
     throw new Error(handleApiError(error));
