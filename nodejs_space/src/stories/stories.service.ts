@@ -283,6 +283,8 @@ ${themeGuidance}
   }
 
   async getStories(page: number = 1, limit: number = 10) {
+    page = Number(page) || 1;
+    limit = Number(limit) || 10;
     const skip = (page - 1) * limit;
     
     const [stories, total] = await Promise.all([
