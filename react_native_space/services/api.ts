@@ -122,7 +122,7 @@ export const fetchStory = async (id: string): Promise<Story> => {
 
 export const toggleFavorite = async (id: string): Promise<ToggleFavoriteResponse> => {
   try {
-    const response = await api.patch<ToggleFavoriteResponse>(`/api/stories/${id}/favorite`);
+    const response = await api.patch<ToggleFavoriteResponse>(`/stories/${id}/favorite`);
     return response.data;
   } catch (error) {
     throw new Error(handleApiError(error));
