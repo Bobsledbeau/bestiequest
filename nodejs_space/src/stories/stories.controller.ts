@@ -5,7 +5,7 @@ import { GenerateStoryDto } from '../dto/generate-story.dto';
 import { PaginationDto } from '../dto/pagination.dto';
 
 @ApiTags('Stories')
-@Controller('api/stories')
+@Controller('stories')
 export class StoriesController {
   constructor(private readonly storiesService: StoriesService) {}
 

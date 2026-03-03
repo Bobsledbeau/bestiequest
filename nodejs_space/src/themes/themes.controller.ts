@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ThemesService } from './themes.service';
 
 @ApiTags('Themes')
-@Controller('api/themes')
+@Controller('themes')
 export class ThemesController {
   constructor(private readonly themesService: ThemesService) {}
 
