@@ -17,6 +17,7 @@ model story {
   length        String
   childname     String?
   isfavorite    Boolean  @default(false)
+  deviceid      String?
   createdat     DateTime @default(now())
   updatedat     DateTime @updatedAt
 }

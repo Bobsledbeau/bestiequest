@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -17,13 +17,15 @@ import { Snackbar } from 'react-native-paper';
 import { StoryCard } from '../components/StoryCard';
 import { LoadingIndicator } from '../components/LoadingIndicator';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../utils/constants';
-import { fetchStories, fetchFavorites, toggleFavorite, deleteStory } from '../services/api';
+import { fetchStories, deleteStory } from '../services/api';
+import { getFavorites, toggleFavorite as toggleLocalFavorite } from '../utils/favorites';
 import { Story } from '../types/api';
 
 type ViewMode = 'all' | 'favorites';
 
 export default function LibraryScreen() {
   const [stories, setStories] = useState<Story[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('all');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -32,13 +34,18 @@ export default function LibraryScreen() {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
+  const loadFavorites = async () => {
+    const favs = await getFavorites();
+    setFavoriteIds(favs);
+  };
+
   const loadStories = async (showLoader = true) => {
     try {
       if (showLoader) setLoading(true);
       setError(null);
-
-      const data = viewMode === 'all' ? await fetchStories(1, 50) : { stories: await fetchFavorites() };
+      const data = await fetchStories(1, 50);
       setStories(data.stories);
+      await loadFavorites();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load stories');
     } finally {
@@ -50,7 +57,7 @@ export default function LibraryScreen() {
   useFocusEffect(
     useCallback(() => {
       loadStories();
-    }, [viewMode])
+    }, [])
   );
 
   const handleRefresh = () => {
@@ -59,29 +66,11 @@ export default function LibraryScreen() {
   };
 
   const handleToggleFavorite = async (storyId: string) => {
-    try {
-      const result = await toggleFavorite(storyId);
-      
-      // Update local state
-      setStories((prev) =>
-        prev.map((story) =>
-          story.id === storyId ? { ...story, isFavorite: result.isFavorite } : story
-        )
-      );
-
-      if (selectedStory?.id === storyId) {
-        setSelectedStory((prev) => prev ? { ...prev, isFavorite: result.isFavorite } : null);
-      }
-
-      showSnackbar(result.isFavorite ? 'Added to favorites!' : 'Removed from favorites');
-
-      // Refresh if we're in favorites view and item was unfavorited
-      if (viewMode === 'favorites' && !result.isFavorite) {
-        loadStories(false);
-      }
-    } catch (err) {
-      Alert.alert('Error', 'Failed to update favorite status', [{ text: 'OK' }]);
-    }
+    const isNowFavorite = await toggleLocalFavorite(storyId);
+    setFavoriteIds((prev) =>
+      isNowFavorite ? [...prev, storyId] : prev.filter((id) => id !== storyId)
+    );
+    showSnackbar(isNowFavorite ? 'Added to favorites! 💖' : 'Removed from favorites');
   };
 
   const handleDeleteStory = async (storyId: string) => {
@@ -98,7 +87,7 @@ export default function LibraryScreen() {
               await deleteStory(storyId);
               setStories((prev) => prev.filter((story) => story.id !== storyId));
               setSelectedStory(null);
-              showSnackbar('Story deleted');
+              showSnackbar('Story deleted 🗑️');
             } catch (err) {
               Alert.alert('Error', 'Failed to delete story', [{ text: 'OK' }]);
             }
@@ -113,19 +102,24 @@ export default function LibraryScreen() {
     setSnackbarVisible(true);
   };
 
+  const displayedStories =
+    viewMode === 'favorites'
+      ? stories.filter((s) => favoriteIds.includes(s.id))
+      : stories;
+
   const renderStoryCard = ({ item }: { item: Story }) => (
     <StoryCard
       story={item}
+      isFavorite={favoriteIds.includes(item.id)}
       onPress={() => setSelectedStory(item)}
       onFavoritePress={() => handleToggleFavorite(item.id)}
+      onDeletePress={() => handleDeleteStory(item.id)}
     />
   );
 
   const EmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyEmoji}>
-        {viewMode === 'all' ? '📖' : '💔'}
-      </Text>
+      <Text style={styles.emptyEmoji}>{viewMode === 'all' ? '📖' : '💔'}</Text>
       <Text style={styles.emptyTitle}>
         {viewMode === 'all' ? 'No Stories Yet!' : 'No Favorites Yet!'}
       </Text>
@@ -138,23 +132,25 @@ export default function LibraryScreen() {
   );
 
   if (loading) {
-    return <LoadingIndicator message="Loading your stories..." />;
+    return <LoadingIndicator />;
   }
 
   if (error) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorEmoji}>😢</Text>
-        <Text style={styles.errorText}>{error}</Text>
-        <Pressable style={styles.retryButton} onPress={() => loadStories()}>
-          <Text style={styles.retryButtonText}>Try Again</Text>
-        </Pressable>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorEmoji}>😢</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <Pressable style={styles.retryButton} onPress={() => loadStories()}>
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container}>
       {/* View Mode Tabs */}
       <View style={styles.tabs}>
         <Pressable
@@ -189,79 +185,63 @@ export default function LibraryScreen() {
 
       {/* Stories List */}
       <FlatList
-        data={stories}
+        data={displayedStories}
         renderItem={renderStoryCard}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={EmptyState}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
-        contentContainerStyle={stories.length === 0 ? styles.emptyList : styles.list}
+        contentContainerStyle={displayedStories.length === 0 ? styles.emptyList : styles.list}
       />
 
       {/* Story Detail Modal */}
-      <Modal
-        visible={selectedStory !== null}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setSelectedStory(null)}
-      >
-        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
+      <Modal visible={!!selectedStory} animationType="slide" onRequestClose={() => setSelectedStory(null)}>
+        <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Pressable
-              style={styles.closeButton}
-              onPress={() => setSelectedStory(null)}
-              accessibilityRole="button"
-              accessibilityLabel="Close"
-            >
-              <MaterialCommunityIcons name="close" size={28} color={COLORS.text} />
+            <Pressable onPress={() => setSelectedStory(null)} style={styles.closeButton} accessibilityRole="button" accessibilityLabel="Close">
+              <MaterialCommunityIcons name="arrow-left" size={28} color={COLORS.text} />
             </Pressable>
-            <Pressable
-              style={styles.deleteButton}
-              onPress={() => selectedStory && handleDeleteStory(selectedStory.id)}
-              accessibilityRole="button"
-              accessibilityLabel="Delete story"
-            >
-              <MaterialCommunityIcons name="delete" size={28} color={COLORS.error} />
-            </Pressable>
+            <View style={styles.modalHeaderRight}>
+              <Pressable
+                onPress={() => selectedStory && handleToggleFavorite(selectedStory.id)}
+                style={styles.headerButton}
+                accessibilityRole="button"
+                accessibilityLabel="Toggle favorite"
+              >
+                <MaterialCommunityIcons
+                  name={selectedStory && favoriteIds.includes(selectedStory.id) ? 'heart' : 'heart-outline'}
+                  size={26}
+                  color={selectedStory && favoriteIds.includes(selectedStory.id) ? COLORS.error : COLORS.textLight}
+                />
+              </Pressable>
+              <Pressable
+                onPress={() => selectedStory && handleDeleteStory(selectedStory.id)}
+                style={styles.headerButton}
+                accessibilityRole="button"
+                accessibilityLabel="Delete story"
+              >
+                <MaterialCommunityIcons name="trash-can-outline" size={26} color={COLORS.textLight} />
+              </Pressable>
+            </View>
           </View>
-
-          {selectedStory && (
-            <ScrollView
-              contentContainerStyle={styles.modalContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.storyHeader}>
-                <Text style={styles.storyTitle}>{selectedStory.title}</Text>
-                {selectedStory.childName && (
-                  <Text style={styles.storyDedication}>For {selectedStory.childName}</Text>
-                )}
-                <Pressable
-                  style={styles.favoriteButton}
-                  onPress={() => handleToggleFavorite(selectedStory.id)}
-                >
-                  <MaterialCommunityIcons
-                    name={selectedStory.isFavorite ? 'heart' : 'heart-outline'}
-                    size={32}
-                    color={selectedStory.isFavorite ? COLORS.accent : COLORS.textLight}
-                  />
-                </Pressable>
-              </View>
-
-              <View style={styles.storyContent}>
-                {selectedStory.story.split('\n\n').map((paragraph, index) => (
-                  <Text key={index} style={styles.storyParagraph}>
-                    {paragraph}
-                  </Text>
-                ))}
-              </View>
-            </ScrollView>
-          )}
+          <ScrollView style={styles.modalContent}>
+            {selectedStory && (
+              <>
+                <View style={styles.storyHeader}>
+                  <Text style={styles.storyTitle}>{selectedStory.title}</Text>
+                  {selectedStory.childName && (
+                    <Text style={styles.storyDedication}>For {selectedStory.childName}</Text>
+                  )}
+                </View>
+                <View style={styles.storyContent}>
+                  {selectedStory.story.split('\n\n').map((paragraph, index) => (
+                    <Text key={index} style={styles.storyParagraph}>{paragraph}</Text>
+                  ))}
+                </View>
+              </>
+            )}
+          </ScrollView>
         </SafeAreaView>
       </Modal>
 
@@ -377,10 +357,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
+  modalHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
   closeButton: {
     padding: SPACING.xs,
   },
-  deleteButton: {
+  headerButton: {
     padding: SPACING.xs,
   },
   modalContent: {
@@ -392,7 +377,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
-    position: 'relative',
   },
   storyTitle: {
     fontSize: FONT_SIZES.xxl,
@@ -405,11 +389,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     color: COLORS.textLight,
     fontStyle: 'italic',
-  },
-  favoriteButton: {
-    position: 'absolute',
-    top: SPACING.md,
-    right: SPACING.md,
   },
   storyContent: {
     backgroundColor: COLORS.card,

@@ -6,11 +6,19 @@ import { Story } from '../types/api';
 
 interface StoryCardProps {
   story: Story;
+  isFavorite: boolean;
   onPress: () => void;
   onFavoritePress: () => void;
+  onDeletePress: () => void;
 }
 
-export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress, onFavoritePress }) => {
+export const StoryCard: React.FC<StoryCardProps> = ({
+  story,
+  isFavorite,
+  onPress,
+  onFavoritePress,
+  onDeletePress,
+}) => {
   const previewText = story.story.substring(0, 100) + (story.story.length > 100 ? '...' : '');
   const date = new Date(story.createdAt).toLocaleDateString('en-US', {
     month: 'short',
@@ -28,31 +36,47 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onPress, onFavorite
     >
       <View style={styles.header}>
         <View style={styles.titleContainer}>
-          <Text style={styles.title} numberOfLines={2}>
-            {story.title}
-          </Text>
+          <Text style={styles.title}>{story.title}</Text>
           <Text style={styles.date}>{date}</Text>
         </View>
-        <Pressable
-          onPress={(e) => {
-            e.stopPropagation();
-            onFavoritePress();
-          }}
-          style={styles.favoriteButton}
-          accessibilityRole="button"
-          accessibilityLabel={story.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <MaterialCommunityIcons
-            name={story.isFavorite ? 'heart' : 'heart-outline'}
-            size={28}
-            color={story.isFavorite ? COLORS.accent : COLORS.textLight}
-          />
-        </Pressable>
+        <View style={styles.actions}>
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              onFavoritePress();
+            }}
+            style={styles.actionButton}
+            accessibilityRole="button"
+            accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <MaterialCommunityIcons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={24}
+              color={isFavorite ? COLORS.error : COLORS.textLight}
+            />
+          </Pressable>
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              onDeletePress();
+            }}
+            style={styles.actionButton}
+            accessibilityRole="button"
+            accessibilityLabel="Delete story"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <MaterialCommunityIcons
+              name="trash-can-outline"
+              size={22}
+              color={COLORS.textLight}
+            />
+          </Pressable>
+        </View>
       </View>
-      <Text style={styles.preview} numberOfLines={3}>
-        {previewText}
-      </Text>
+
+      <Text style={styles.preview}>{previewText}</Text>
+
       <View style={styles.footer}>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{story.length}</Text>
@@ -103,7 +127,12 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.textLight,
   },
-  favoriteButton: {
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  actionButton: {
     padding: SPACING.xs,
   },
   preview: {

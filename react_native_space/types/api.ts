@@ -1,5 +1,3 @@
-// API Types matching backend exactly
-
 export interface Item {
   id: string;
   name: string;
@@ -30,7 +28,6 @@ export interface Story {
   subTheme: string | null;
   length: 'short' | 'medium' | 'long';
   childName?: string;
-  isFavorite: boolean;
   createdAt: string;
 }
 
@@ -56,13 +53,4 @@ export interface StoriesResponse {
   total: number;
   page: number;
   totalPages: number;
-}
-
-export interface FavoritesResponse {
-  stories: Story[];
-}
-
-export interface ToggleFavoriteResponse {
-  id: string;
-  isFavorite: boolean;
 }

@@ -1,4 +1,4 @@
-﻿import { Injectable, BadRequestException, InternalServerErrorException, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, InternalServerErrorException, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
 import { ItemsService } from '../items/items.service';
@@ -21,7 +21,6 @@ export class StoriesService {
   async generateStory(dto: GenerateStoryDto) {
     this.logger.log(`Generating story with theme: ${dto.theme}, subTheme: ${dto.subTheme}, length: ${dto.length}`);
 
-    // Validate selected items
     const itemValidation = this.itemsService.validateItems(dto.selectedItems);
     if (!itemValidation.valid) {
       throw new BadRequestException(
@@ -29,23 +28,20 @@ export class StoriesService {
       );
     }
 
-    // Validate theme and sub-theme
     const themeValidation = this.themesService.validateThemeAndSubTheme(dto.theme, dto.subTheme);
     if (!themeValidation.valid) {
       throw new BadRequestException(themeValidation.error);
     }
 
     const theme = this.themesService.getThemeById(dto.theme);
-    const subCategory = dto.subTheme 
+    const subCategory = dto.subTheme
       ? this.themesService.getSubCategoryById(dto.theme, dto.subTheme)
       : undefined;
 
-    // Get item names for the prompt
     const itemNames = dto.selectedItems
       .map(id => this.itemsService.getItemById(id)?.name)
       .filter((name): name is string => !!name);
 
-    // Generate story using LLM
     const { title, story } = await this.generateStoryWithLLM(
       itemNames,
       theme!.name,
@@ -55,7 +51,6 @@ export class StoriesService {
       dto.childGender,
     );
 
-    // Save to database
     const savedStory = await this.prisma.story.create({
       data: {
         title,
@@ -65,6 +60,7 @@ export class StoriesService {
         subtheme: dto.subTheme,
         length: dto.length,
         childname: dto.childName,
+        deviceid: dto.deviceId,
       },
     });
 
@@ -72,34 +68,35 @@ export class StoriesService {
     return this.formatStoryResponse(savedStory);
   }
 
-private async generateStoryWithLLM(
-  items: string[],
-  themeName: string,
-  subThemeName: string | undefined,
-  length: string,
-  childName?: string,
-  childGender?: 'boy' | 'girl',
-): Promise<{ title: string; story: string }> {
-  const wordCount = this.getWordCount(length);
-  let protagonist: string = 'a curious child';
+  private async generateStoryWithLLM(
+    items: string[],
+    themeName: string,
+    subThemeName: string | undefined,
+    length: string,
+    childName?: string,
+    childGender?: 'boy' | 'girl',
+  ): Promise<{ title: string; story: string }> {
+    const wordCount = this.getWordCount(length);
 
-  if (childName && childGender) {
-    protagonist = `${childName}, a ${childGender}`;
-  } else if (childName) {
-    protagonist = childName;
-  } else if (childGender) {
-    protagonist = `a curious ${childGender}`;
-  }
+    let protagonist: string = 'a curious child';
+    if (childName && childGender) {
+      protagonist = `${childName}, a ${childGender}`;
+    } else if (childName) {
+      protagonist = childName;
+    } else if (childGender) {
+      protagonist = `a curious ${childGender}`;
+    }
 
-  const themeGuidance = this.getThemeGuidance(themeName, subThemeName);
+    const themeGuidance = this.getThemeGuidance(themeName, subThemeName);
 
-  const prompt = `**YOU ARE A CHILDREN'S BEDTIME STORYTELLER - FOLLOW THESE RULES EXACTLY**
+    const prompt = `**YOU ARE A CHILDREN'S BEDTIME STORYTELLER - FOLLOW THESE RULES EXACTLY**
 
 **WORD COUNT - THIS IS MANDATORY**:
 You MUST write a story that is EXACTLY around ${wordCount} words long.
 - Long story: 1900–2100 words
 - Medium story: 1150–1250 words
 - Short story: 750–850 words
+
 Count your words. If the story is too short, KEEP WRITING more events, descriptions, and dialogue until you reach the target.
 DO NOT summarize or end early.
 
@@ -131,72 +128,68 @@ ${themeGuidance}
   "story": "Full story text..."
 }`;
 
-  let result: { title: string; story: string };
+    let result: { title: string; story: string };
 
-  try {
-    const apiKey = this.configService.get<string>('XAI_API_KEY');
-    if (!apiKey) {
-      throw new Error('XAI_API_KEY is not configured');
+    try {
+      const apiKey = this.configService.get('XAI_API_KEY');
+      if (!apiKey) {
+        throw new Error('XAI_API_KEY is not configured');
+      }
+
+      const response = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'grok-4-1-fast-non-reasoning',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a wholesome storyteller for young children. Create safe, positive stories with happy endings. Always respond with valid JSON only.',
+            },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.9,
+          max_tokens: 8192,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        this.logger.error(`Grok API error: ${response.status} - ${errorText}`);
+        throw new Error(`Grok API returned status ${response.status}`);
+      }
+
+      const data = await response.json();
+      const responseText = data.choices?.[0]?.message?.content?.trim();
+
+      if (!responseText) {
+        throw new Error('Empty response from Grok');
+      }
+
+      result = JSON.parse(responseText);
+
+      if (!result.title || !result.story) {
+        this.logger.error('Invalid story structure from Grok', result);
+        throw new Error('Invalid story structure from Grok');
+      }
+    } catch (error: any) {
+      this.logger.error('Error generating story with Grok', error);
+      this.logger.warn('Using fallback story due to Grok error');
+      result = this.getFallbackStory(items, themeName, subThemeName, protagonist);
     }
 
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'grok-4-1-fast-non-reasoning',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a wholesome storyteller for young children. Create safe, positive stories with happy endings. Always respond with valid JSON only.',
-          },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.8,
-        max_tokens: 8192,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      this.logger.error(`Grok API error: ${response.status} - ${errorText}`);
-      throw new Error(`Grok API returned status ${response.status}`);
-    }
-
-    const data = await response.json();
-    const responseText = data.choices?.[0]?.message?.content?.trim();
-
-    if (!responseText) {
-      throw new Error('Empty response from Grok');
-    }
-
-    result = JSON.parse(responseText);
-
-    if (!result.title || !result.story) {
-      this.logger.error('Invalid story structure from Grok', result);
-      throw new Error('Invalid story structure from Grok');
-    }
-  } catch (error: any) {
-    this.logger.error('Error generating story with Grok', error);
-    this.logger.warn('Using fallback story due to Grok error');
-    result = this.getFallbackStory(items, themeName, subThemeName, protagonist);
+    return result;
   }
-
-  return result;
-}
 
   private getWordCount(length: string): number {
     switch (length) {
-      case 'short':
-        return 800;
-      case 'medium':
-        return 1200;
-      case 'long':
-        return 2000;
-      default:
-        return 1200;
+      case 'short': return 500;
+      case 'medium': return 1000;
+      case 'long': return 2000;
+      default: return 1200;
     }
   }
 
@@ -210,7 +203,7 @@ ${themeGuidance}
 
     if (themeName === 'Magical') {
       return `- Include fantasy elements like magic, enchantment, or wonder
-- Create a sense of whimsy and imagination
+- Create a sense of wonder and imagination
 - Use magical transformations or discoveries
 - Make the magical elements feel special and delightful`;
     }
@@ -275,25 +268,28 @@ ${themeGuidance}
   ): { title: string; story: string } {
     const itemList = items.slice(0, 3).join(', ');
     const themeDesc = subThemeName ? `${themeName} - ${subThemeName}` : themeName;
-    
+
     return {
       title: `${protagonist}'s ${themeName} Adventure`,
       story: `Once upon a time, ${protagonist} embarked on a wonderful ${themeDesc.toLowerCase()} adventure.\n\nAlong the way, they met many friends including ${itemList}${items.length > 3 ? ' and others' : ''}. Together, they had the most amazing time exploring and learning. Each friend brought something special to the journey, making it truly magical.\n\nAs the sun began to set, ${protagonist} felt happy and grateful for all the new friends and experiences. With a warm heart and sleepy eyes, it was time to rest and dream of tomorrow's adventures.\n\nThe end. Sweet dreams!`,
     };
   }
 
-  async getStories(page: number = 1, limit: number = 10) {
+  async getStories(page: number = 1, limit: number = 10, deviceId?: string) {
     page = Number(page) || 1;
     limit = Number(limit) || 10;
     const skip = (page - 1) * limit;
-    
+
+    const where = deviceId ? { deviceid: deviceId } : {};
+
     const [stories, total] = await Promise.all([
       this.prisma.story.findMany({
+        where,
         skip,
         take: limit,
         orderBy: { createdat: 'desc' },
       }),
-      this.prisma.story.count(),
+      this.prisma.story.count({ where }),
     ]);
 
     return {
@@ -316,7 +312,7 @@ ${themeGuidance}
     return this.formatStoryResponse(story);
   }
 
-  async toggleFavorite(id: string) {
+  async deleteStory(id: string, deviceId?: string) {
     const story = await this.prisma.story.findUnique({
       where: { id },
     });
@@ -325,42 +321,13 @@ ${themeGuidance}
       throw new NotFoundException(`Story with ID ${id} not found`);
     }
 
-    const updated = await this.prisma.story.update({
-      where: { id },
-      data: { isfavorite: !story.isfavorite },
-    });
-
-    return {
-      id: updated.id,
-      isFavorite: updated.isfavorite,
-    };
-  }
-
-  async getFavoriteStories() {
-    const stories = await this.prisma.story.findMany({
-      where: { isfavorite: true },
-      orderBy: { createdat: 'desc' },
-    });
-
-    return {
-      stories: stories.map((story: any) => this.formatStoryResponse(story)),
-    };
-  }
-
-  async deleteStory(id: string) {
-    const story = await this.prisma.story.findUnique({
-      where: { id },
-    });
-
-    if (!story) {
-      throw new NotFoundException(`Story with ID ${id} not found`);
+    if (deviceId && story.deviceid && story.deviceid !== deviceId) {
+      throw new ForbiddenException('You can only delete your own stories');
     }
 
     await this.prisma.story.delete({
       where: { id },
     });
-
-    // No return for 204 No Content
   }
 
   private formatStoryResponse(story: any) {

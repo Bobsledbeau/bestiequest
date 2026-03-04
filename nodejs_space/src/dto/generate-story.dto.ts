@@ -21,8 +21,8 @@ export class GenerateStoryDto {
     enum: ['funny', 'magical', 'life_lessons', 'learning'],
   })
   @IsString()
-  @IsIn(['funny', 'magical', 'life_lessons', 'learning'], { 
-    message: 'Theme must be one of: funny, magical, life_lessons, learning' 
+  @IsIn(['funny', 'magical', 'life_lessons', 'learning'], {
+    message: 'Theme must be one of: funny, magical, life_lessons, learning'
   })
   theme: string;
 
@@ -60,4 +60,12 @@ export class GenerateStoryDto {
   @IsString()
   @IsIn(['boy', 'girl'], { message: 'Gender must be boy or girl' })
   childGender?: 'boy' | 'girl';
+
+  @ApiPropertyOptional({
+    description: 'Device ID for story ownership',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  })
+  @IsOptional()
+  @IsString()
+  deviceId?: string;
 }
