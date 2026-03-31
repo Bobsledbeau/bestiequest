@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import Head from 'expo-router/head';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StoryProvider } from '../context/StoryContext';
@@ -8,6 +9,11 @@ import { COLORS } from '../utils/constants';
 export default function RootLayout() {
   return (
     <ErrorBoundary>
+      <Head>
+        <link rel="apple-touch-icon" href="/icon-180.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icon-152.png" />
+        <link rel="apple-touch-icon" sizes="120x120" href="/icon-120.png" />
+      </Head>
       <SafeAreaProvider>
         <PaperProvider>
           <StoryProvider>
