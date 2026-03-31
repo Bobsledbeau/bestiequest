@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,6 +9,7 @@ import {
   Alert,
   Modal,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -74,27 +75,42 @@ export default function LibraryScreen() {
   };
 
   const handleDeleteStory = async (storyId: string) => {
-    Alert.alert(
-      'Delete Story',
-      'Are you sure you want to delete this story? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteStory(storyId);
-              setStories((prev) => prev.filter((story) => story.id !== storyId));
-              setSelectedStory(null);
-              showSnackbar('Story deleted 🗑️');
-            } catch (err) {
-              Alert.alert('Error', 'Failed to delete story', [{ text: 'OK' }]);
-            }
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(
+        'Are you sure you want to delete this story? This action cannot be undone.'
+      );
+      if (!confirmed) return;
+      try {
+        await deleteStory(storyId);
+        setStories((prev) => prev.filter((story) => story.id !== storyId));
+        setSelectedStory(null);
+        showSnackbar('Story deleted 🗑️');
+      } catch (err) {
+        window.alert('Failed to delete story');
+      }
+    } else {
+      Alert.alert(
+        'Delete Story',
+        'Are you sure you want to delete this story? This action cannot be undone.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await deleteStory(storyId);
+                setStories((prev) => prev.filter((story) => story.id !== storyId));
+                setSelectedStory(null);
+                showSnackbar('Story deleted 🗑️');
+              } catch (err) {
+                Alert.alert('Error', 'Failed to delete story', [{ text: 'OK' }]);
+              }
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const showSnackbar = (message: string) => {
